@@ -14,7 +14,8 @@ use std::iter::FromIterator;
 /// Topological sort using Kahn's algorithm
 ///
 ///
-pub fn sort<'a, T>(graph: &'a SparseGraph<'a, T>) -> Vec<&'a T>
+//pub fn sort<'a, T>(graph: &'a SparseGraph<'a, T>) -> Vec<&'a T>
+pub fn sort<'a, T>(graph: &'a SparseGraph<'a, T>) -> Result<Vec<&'a T>, TSortErr>
 where
     T: Hash + Eq,
 {
@@ -51,41 +52,66 @@ where
         });
     }
 
-    if iteration > vertices.len() {
-        // todo return Result
-        println!("shit happened => cycle detected");
+    if iteration == vertices.len() {
+        Ok(tsorted)
+    } else {
+        Err(TSortErr::Cycle)
     }
-
-    return tsorted;
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// Construct simple DAG for tests
+    ///
+    ///    a
+    ///    |
+    ///    b
+    ///   / \
+    ///  c   d
+    ///     / \
+    ///    e   f
+    ///
     fn simple_dag() -> SparseGraph<'static, &'static str> {
         let mut g = SparseGraph::new();
-
         g.add_edge(&"a", &"b");
         g.add_edge(&"b", &"c");
         g.add_edge(&"b", &"d");
         g.add_edge(&"d", &"e");
         g.add_edge(&"d", &"f");
-
         g
     }
 
     #[test]
     fn topo_sort() {
         let g = simple_dag();
-        let tsorted = sort(&g);
-
+        let tsorted = sort(&g).unwrap_or_default();
 
         assert!(vec![
             vec![&"a", &"b", &"c", &"d", &"f", &"e"],
             vec![&"a", &"b", &"d", &"c", &"f", &"e"],
             vec![&"a", &"b", &"c", &"d", &"e", &"f"],
             vec![&"a", &"b", &"d", &"c", &"e", &"f"],
-        ].contains(&tsorted))
+        ]
+        .contains(&tsorted))
+    }
+
+    #[test]
+    fn sort_cycle() {
+        let mut g = simple_dag();
+        g.add_edge(&"f", &"b");
+        let tsorted = sort(&g);
+
+        assert_eq!(tsorted, Err(TSortErr::Cycle))
+    }
+
+    #[test]
+    fn sort_cycle_full() {
+        let mut g = simple_dag();
+        g.add_edge(&"f", &"a");
+        let tsorted = sort(&g);
+
+        assert_eq!(tsorted, Err(TSortErr::Cycle))
     }
 }

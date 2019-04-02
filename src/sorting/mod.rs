@@ -6,6 +6,7 @@ pub mod graph;
 //pub mod dfs;
 pub mod kahn;
 
+#[derive(Debug, PartialEq)]
 pub enum TSortErr {
     NoOrder,
     Cycle,
