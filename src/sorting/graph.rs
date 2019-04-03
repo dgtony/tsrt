@@ -302,13 +302,19 @@ mod tests {
         assert_eq!(g.vertices(), vec![a, b, c, d].iter().collect());
     }
 
+    /// Construct simple DAG for tests
+    ///
+    ///    a
+    ///    |
+    ///    b
+    ///   / \
+    ///  c   d
+    ///
     fn simple_dag() -> SparseGraph<'static, &'static str> {
         let mut g = SparseGraph::new();
-
         g.add_edge(&a, &b);
         g.add_edge(&b, &c);
         g.add_edge(&b, &d);
-
         g
     }
 }

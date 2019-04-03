@@ -22,6 +22,7 @@ where
     let mut tsorted: Vec<&'a T> = Vec::new();
     let mut iteration: usize = 0;
     let vertices = graph.vertices();
+    // incoming degrees of all vertices in the graph
     let mut in_degrees: HashMap<&T, usize> = vertices
         .iter()
         .map(|&v| {
