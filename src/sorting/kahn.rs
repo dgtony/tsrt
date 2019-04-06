@@ -3,18 +3,9 @@ use crate::sorting::TSortErr;
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::Hash;
-
-use std::fmt::Debug;
 use std::iter::FromIterator;
 
-// todo use graph trait instead!!!
-// most likely it is a sparse graph structure, hence we
-// can use adjacency list representation
-
-/// Topological sort using Kahn's algorithm
-///
-///
-//pub fn sort<'a, T>(graph: &'a SparseGraph<'a, T>) -> Vec<&'a T>
+/// Topological sorting using Kahn's algorithm
 pub fn sort<'a, T>(graph: &'a SparseGraph<'a, T>) -> Result<Vec<&'a T>, TSortErr>
 where
     T: Hash + Eq,

@@ -1,7 +1,10 @@
+use crate::sorting::Relation;
+use crate::TSortErr;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::Hash;
+use std::iter::FromIterator;
 
-/// Representation of sparse graphs (|E| << \V\^2)
+/// Sparse graph representation (|E| << \V\^2)
 #[derive(Debug)]
 pub struct SparseGraph<'a, T: Hash + Eq> {
     sources: HashMap<&'a T, HashSet<&'a T>>, // src_v -> [dst_v]
@@ -98,14 +101,11 @@ where
     }
 
     pub fn contains_cycles(&self, start: &T) -> bool {
-        unimplemented!()
+        self.dfs(start) == Err(TSortErr::Cycle)
     }
 
-    /// Depth-first search from given vertex.
-    ///
-    ///
-    pub fn dfs(&'a self, start: &'a T) -> Option<Vec<&'a T>> {
-        // todo change signature to Result<Vec, ErrCycle>
+    /// Depth-first graph traversal starting from given vertex.
+    pub fn dfs(&'a self, start: &'a T) -> Result<Vec<&'a T>, TSortErr> {
         let mut result = Vec::new();
         let mut queue = VecDeque::new();
         let mut iterations = 0;
@@ -113,7 +113,7 @@ where
         queue.push_front(start);
         while let Some(next) = queue.pop_front() {
             if iterations > self.num_edges {
-                return None;
+                return Err(TSortErr::Cycle);
             }
 
             result.push(next);
@@ -126,14 +126,11 @@ where
             }
         }
 
-        Some(result)
+        Ok(result)
     }
 
-    // todo change signature
-    // return Result with custom error (failure?)
-    // - on cycle detected
-    // - for toposort: no order
-    pub fn bfs(&'a self, start: &'a T) -> Option<Vec<&'a T>> {
+    /// Breadth-first graph traversal starting from given vertex.
+    pub fn bfs(&'a self, start: &'a T) -> Result<Vec<&'a T>, TSortErr> {
         let mut result = Vec::new();
         let mut queue = VecDeque::new();
         let mut iterations = 0;
@@ -141,7 +138,7 @@ where
         queue.push_back(start);
         while let Some(next) = queue.pop_front() {
             if iterations > self.num_edges {
-                return None;
+                return Err(TSortErr::Cycle);
             }
 
             result.push(next);
@@ -154,7 +151,7 @@ where
             }
         }
 
-        Some(result)
+        Ok(result)
     }
 
     /// Return set of all vertices in graph
@@ -182,7 +179,56 @@ where
     }
 }
 
-// todo transformations from various graphs into set of relations?
+/* Common traits */
+
+impl<'a, T> From<Vec<Relation<'a, T>>> for SparseGraph<'a, T>
+where
+    T: 'a + Eq + Hash,
+{
+    fn from(v: Vec<Relation<'a, T>>) -> SparseGraph<'a, T> {
+        let mut g = SparseGraph::new();
+        v.iter().for_each(|rel| {
+            g.add_edge(rel.from, rel.to);
+        });
+        g
+    }
+}
+
+impl<'a, T> Into<HashSet<Relation<'a, T>>> for SparseGraph<'a, T>
+where
+    T: 'a + Eq + Hash,
+{
+    fn into(self) -> HashSet<Relation<'a, T>> {
+        let mut relations = HashSet::new();
+
+        self.destinations.iter().for_each(|(&v, srcs)| {
+            srcs.iter().for_each(|&s| {
+                relations.insert(Relation { from: s, to: v });
+            })
+        });
+
+        self.sources.iter().for_each(|(&v, dsts)| {
+            dsts.iter().for_each(|&d| {
+                relations.insert(Relation { from: v, to: d });
+            })
+        });
+
+        relations
+    }
+}
+
+impl<'a, T> FromIterator<Relation<'a, T>> for SparseGraph<'a, T>
+where
+    T: 'a + Eq + Hash,
+{
+    fn from_iter<I: IntoIterator<Item = Relation<'a, T>>>(iter: I) -> Self {
+        let mut g = SparseGraph::new();
+        iter.into_iter().for_each(|rel| {
+            g.add_edge(rel.from, rel.to);
+        });
+        g
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -282,8 +328,9 @@ mod tests {
         let mut g = simple_dag();
         g.add_edge(&d, &a);
 
-        assert!(g.bfs(&a).is_none());
-        assert!(g.dfs(&a).is_none());
+        assert!(g.contains_cycles(&a));
+        assert_eq!(g.bfs(&a), Err(TSortErr::Cycle));
+        assert_eq!(g.dfs(&a), Err(TSortErr::Cycle));
     }
 
     #[test]
@@ -291,8 +338,7 @@ mod tests {
         let mut g = simple_dag();
         g.add_edge(&d, &a);
 
-        // todo
-        //assert!(g.contains_cycles(&a));
+        assert!(g.contains_cycles(&a));
     }
 
     #[test]

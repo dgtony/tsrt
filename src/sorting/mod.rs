@@ -1,6 +1,5 @@
-//use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
-use std::sync::atomic::Ordering::Relaxed;
+use std::iter::FromIterator;
 
 pub mod graph;
 //pub mod dfs;
@@ -12,6 +11,7 @@ pub enum TSortErr {
     Cycle,
 }
 
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub struct Relation<'a, T>
 where
     T: Hash + Eq,
@@ -20,92 +20,36 @@ where
     pub to: &'a T,
 }
 
-/* Relation graph representation */
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::sorting::graph::SparseGraph;
+    use std::collections::HashSet;
 
-//todo move to separate module
+    #[test]
+    fn graph_relations() {
+        let rels: HashSet<Relation<&str>> = HashSet::from_iter(vec![
+            Relation {
+                from: &"a",
+                to: &"b",
+            },
+            Relation {
+                from: &"b",
+                to: &"c",
+            },
+            Relation {
+                from: &"b",
+                to: &"d",
+            },
+        ]);
 
-/*
-pub struct RelationGraph<'a, T> {
-    adj_list_out: HashMap<&'a T, HashSet<&'a T>>, // src_v -> [dst_v]
-    adj_list_in: HashMap<&'a T, HashSet<&'a T>>, // dst_v -> [src_v]
-}
+        let rs = HashSet::from_iter(rels);
+        let rs2 = rs.clone();
 
-impl<'a, T> RelationGraph<'a, T>
-where
-    T: Hash + Eq,
-{
-    pub fn new() -> Self {
-        RelationGraph {
-            adj_list_in: HashMap::new(),
-            adj_list_out: HashMap::new(),
-        }
-    }
+        // relation set -> graph -> relation set
+        let relation_set: HashSet<Relation<&str>> = SparseGraph::from_iter(rs).into();
 
-    // Add relation to the graph
-    // Return true is new unique relation was added to the graph
-    pub fn add(&mut self, relation: Relation<'a, T>) -> bool {
-//        match self.adj_list_out.get_mut(&relation.from) {
-//            Some(destinations) => {
-//                let dst_ins_res = destinations.insert(relation.to);
-//                dst_ins_res
-//            },
-//            None => {
-//                let mut destinations = HashSet::new();
-//                destinations.insert(relation.to);
-//                self.adj_list_out.insert(relation.from, destinations).is_some() //always true
-//            }
-//        }
-
-        let rel2 = Relation {
-           from: relation.from,
-            to: relation.to,
-        };
-
-        self.insert_in(relation) || self.insert_out(rel2)
-    }
-
-    pub fn del(&mut self, relation: Relation<'a, T>) -> bool {
-        match self.adj_list_out.get_mut(relation.from) {
-            Some(destinations) => destinations.remove(relation.to),
-            None => false,
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.adj_list_out.is_empty()
-    }
-
-    pub fn incoming(&self, vertex: &T) -> Option<Vec<&T>> {
-        unimplemented!()
-    }
-
-    pub fn outgoing(&self, vertex: &T) -> Option<Vec<&T>> {
-        self.adj_list_out
-            .get(&vertex)
-            .and_then(|dsts| Some(dsts.iter().collect()))
-    }
-
-
-    // internal
-    fn insert_in(&mut self, relation: Relation<'a, T>) -> bool {
-        RelationGraph::insert(&mut self.adj_list_in, relation.to, relation.from)
-    }
-
-    fn insert_out(&mut self, relation: Relation<'a, T>) -> bool {
-        RelationGraph::insert(&mut self.adj_list_out, relation.from, relation.to)
-    }
-
-    fn insert(map: &mut HashMap<&T, HashSet<&T>>, a: &T, b: &T) -> bool {
-        match map.get_mut(&a) {
-            Some(sources) => sources.insert(b),
-            None => {
-                let mut sources = HashSet::new();
-                sources.insert(b);
-                map.insert(a, sources).is_some()
-            }
-        }
+        // expecting to be isomorphic
+        assert_eq!(relation_set, rs2);
     }
 }
-
-// todo transformations from various graphs into set of relations?
-*/
