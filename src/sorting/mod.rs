@@ -1,9 +1,11 @@
 use std::hash::Hash;
 use std::iter::FromIterator;
 
+pub mod dfs;
 pub mod graph;
-//pub mod dfs;
 pub mod kahn;
+
+pub use graph::SparseGraph;
 
 #[derive(Debug, PartialEq)]
 pub enum TSortErr {
@@ -23,7 +25,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sorting::graph::SparseGraph;
     use std::collections::HashSet;
 
     #[test]

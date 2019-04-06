@@ -1,5 +1,4 @@
-use crate::sorting::graph::SparseGraph;
-use crate::sorting::TSortErr;
+use crate::sorting::{SparseGraph, TSortErr};
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::Hash;

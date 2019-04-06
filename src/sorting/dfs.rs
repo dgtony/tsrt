@@ -1,45 +1,80 @@
-use crate::sorting::{Relation, TSortErr};
+use crate::sorting::{Relation, SparseGraph, TSortErr};
+
 use std::collections::hash_set::Iter;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::iter::FromIterator;
 
-/// Topological sort using simple DFS algorithm
+/// Topological sort using simple recursive DFS algorithm
 ///
 /// Time complexity: O(|V|+|E|).
-//pub fn sort<T, R>(relations: R)
-//    where T: Hash + Eq,
-//          R: Sized + Iterator<Item=T>
-//{
-//
-//    //HashSet::new()
-//
-//}
-
-//pub fn sort<T, R, S>(relations: R) -> S
-//pub fn sort<'a, T: 'a, R>(relations: R) -> impl Iterator<Item=&'a T>
-//pub fn sort<'a, T, R>(relations: R) -> impl IntoIterator<Item=&'a T>
-//pub fn sort<T, R>(relations: R) -> impl IntoIterator<Item=T>
-//pub fn sort<T, R>(relations: R) -> Vec<T>
-//pub fn sort<'a, T>(relations: impl Iterator<Item=&'a Relation<T>>) -> Vec<&'a T>
-//pub fn sort<'a, T>(relations: impl Iterator<Item=Relation<T>>) -> Vec<T>
-//where T: Hash + Eq + 'a,
-//R: Iterator<Item=Relation<T>>,
-//S: Iterator<Item=T>
-
-pub fn sort<'a, T, R>(relations: R) -> Vec<&'a T>
+///
+/// Caution: not recommended for large graphs!
+pub fn sort<'a, T>(graph: &'a SparseGraph<'a, T>) -> Result<Vec<&'a T>, TSortErr>
 where
     T: Hash + Eq,
-    R: Iterator<Item = &'a Relation<T>>,
 {
-    let mut visited = HashSet::new();
+    let mut visited = HashMap::new();
+    let mut order = Vec::new();
 
-    relations.for_each(|r| {
-        visited.insert(&r.from);
-        visited.insert(&r.to);
+    graph.vertices().iter().for_each(|n| {
+        if !*visited.get(n).unwrap_or(&false) {
+            recursive_dfs(*n, graph, &mut visited, &mut order);
+        }
     });
 
-    // todo
+    order.reverse();
+    Ok(order)
+}
 
-    Vec::from_iter(visited)
+fn recursive_dfs<'a, T>(
+    vertex: &'a T,
+    graph: &'a SparseGraph<'a, T>,
+    visited: &mut HashMap<&'a T, bool>,
+    order: &mut Vec<&'a T>,
+) where
+    T: Hash + Eq,
+{
+    visited.insert(vertex, true);
+
+    if let Some(neighbours) = graph.outgoing(vertex) {
+        neighbours.iter().for_each(|n| {
+            if !*visited.get(n).unwrap_or(&false) {
+                recursive_dfs(*n, graph, visited, order);
+            }
+        });
+    }
+
+    order.push(vertex);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn topo_sort() {
+        let g = simple_dag();
+        let tsorted = sort(&g).unwrap_or_default();
+
+        assert!(
+            vec![vec![&"a", &"b", &"c", &"d",], vec![&"a", &"b", &"d", &"c"],].contains(&tsorted)
+        )
+    }
+
+    /// Construct simple DAG for tests
+    ///
+    ///    a
+    ///    |
+    ///    b
+    ///   / \
+    ///  c   d
+    ///
+    fn simple_dag() -> SparseGraph<'static, &'static str> {
+        let mut g = SparseGraph::new();
+        g.add_edge(&"a", &"b");
+        g.add_edge(&"b", &"c");
+        g.add_edge(&"b", &"d");
+        g
+    }
 }
