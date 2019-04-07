@@ -1,16 +1,27 @@
-use crate::sorting::{Relation, SparseGraph, TSortErr};
+use crate::sorting::{Relation, SparseGraph, TSortErr, TopoSorter};
 
 use std::collections::hash_set::Iter;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::iter::FromIterator;
 
+pub struct DFSSorter;
+
+impl TopoSorter for DFSSorter {
+    fn sort<'a, 'b: 'a, T>(graph: &'b SparseGraph<'a, T>) -> Result<Vec<&'a T>, TSortErr>
+    where
+        T: Hash + Eq,
+    {
+        sort(graph)
+    }
+}
+
 /// Topological sort using simple recursive DFS algorithm
 ///
 /// Time complexity: O(|V|+|E|).
 ///
 /// Caution: not recommended for large graphs!
-pub fn sort<'a, T>(graph: &'a SparseGraph<'a, T>) -> Result<Vec<&'a T>, TSortErr>
+fn sort<'a, T>(graph: &'a SparseGraph<'a, T>) -> Result<Vec<&'a T>, TSortErr>
 where
     T: Hash + Eq,
 {

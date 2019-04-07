@@ -1,11 +1,14 @@
 use std::hash::Hash;
 use std::iter::FromIterator;
 
-pub mod dfs;
-pub mod graph;
-pub mod kahn;
+mod dfs;
+mod graph;
+mod kahn;
 
 pub use graph::SparseGraph;
+
+pub use dfs::DFSSorter;
+pub use kahn::KahnSorter;
 
 #[derive(Debug, PartialEq)]
 pub enum TSortErr {
@@ -20,6 +23,22 @@ where
 {
     pub from: &'a T,
     pub to: &'a T,
+}
+
+pub trait TopoSorter {
+    fn sort<'a, 'b: 'a, T: Hash + Eq>(
+        graph: &'b SparseGraph<'a, T>,
+    ) -> Result<Vec<&'a T>, TSortErr>;
+}
+
+pub fn mk_sort<'a, T, S: TopoSorter>(
+    graph: &'a SparseGraph<'a, T>,
+    _sorter: &S,
+) -> Result<Vec<&'a T>, TSortErr>
+where
+    T: Hash + Eq,
+{
+    S::sort(graph)
 }
 
 #[cfg(test)]
@@ -52,5 +71,31 @@ mod tests {
 
         // expecting to be isomorphic
         assert_eq!(relation_set, rs2);
+    }
+
+    #[test]
+    fn generic_sort() {
+        let g = SparseGraph::from(vec![
+            Relation {
+                from: &"a",
+                to: &"b",
+            },
+            Relation {
+                from: &"b",
+                to: &"c",
+            },
+            Relation {
+                from: &"b",
+                to: &"d",
+            },
+        ]);
+
+        let sorted_variants = vec![vec![&"a", &"b", &"c", &"d"], vec![&"a", &"b", &"d", &"c"]];
+
+        let ts_kahn = mk_sort(&g, &KahnSorter).unwrap_or_default();
+        let ts_dfs = mk_sort(&g, &DFSSorter).unwrap_or_default();
+
+        assert!(sorted_variants.contains(&ts_kahn));
+        assert!(sorted_variants.contains(&ts_dfs));
     }
 }

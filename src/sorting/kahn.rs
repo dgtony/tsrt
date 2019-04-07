@@ -1,11 +1,22 @@
-use crate::sorting::{SparseGraph, TSortErr};
+use crate::sorting::{SparseGraph, TSortErr, TopoSorter};
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::Hash;
 use std::iter::FromIterator;
 
+pub struct KahnSorter;
+
+impl TopoSorter for KahnSorter {
+    fn sort<'a, 'b: 'a, T>(graph: &'b SparseGraph<'a, T>) -> Result<Vec<&'a T>, TSortErr>
+    where
+        T: Hash + Eq,
+    {
+        sort(graph)
+    }
+}
+
 /// Topological sorting using Kahn's algorithm
-pub fn sort<'a, T>(graph: &'a SparseGraph<'a, T>) -> Result<Vec<&'a T>, TSortErr>
+fn sort<'a, T>(graph: &'a SparseGraph<'a, T>) -> Result<Vec<&'a T>, TSortErr>
 where
     T: Hash + Eq,
 {
