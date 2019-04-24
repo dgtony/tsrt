@@ -19,11 +19,21 @@ pub enum TSortErr {
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub struct Relation<'a, T>
 where
-    T: Hash + Eq,
+    T: Hash + Eq + ?Sized,
 {
     pub from: &'a T,
     pub to: &'a T,
 }
+
+// fixme owning relation is better?
+//#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+//pub struct Relation<T>
+//where
+//    T: Hash + Eq,
+//{
+//    pub from: T,
+//    pub to: T,
+//}
 
 pub trait TopoSorter {
     fn sort<'a, 'b: 'a, T: Hash + Eq>(
