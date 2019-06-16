@@ -83,9 +83,9 @@ mod tests {
     ///
     fn simple_dag() -> SparseGraph<&'static str> {
         let mut g = SparseGraph::new();
-        g.add_edge(&"a", &"b");
-        g.add_edge(&"b", &"c");
-        g.add_edge(&"b", &"d");
+        g.add_edge("a", "b");
+        g.add_edge("b", "c");
+        g.add_edge("b", "d");
         g
     }
 }

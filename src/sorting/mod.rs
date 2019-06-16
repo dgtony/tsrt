@@ -62,26 +62,26 @@ mod tests {
             },
         ]);
 
-        let relation_set: HashSet<Relation<String>> = SparseGraph::from_iter(rels.into()).into();
+        let relation_set: HashSet<Relation<String>> = SparseGraph::from_iter(rels.clone().into_iter()).into();
 
         // expecting to be isomorphic
-        assert_eq!(relation_set, rs2);
+        assert_eq!(relation_set, rels);
     }
 
     #[test]
     fn generic_sort() {
         let g = SparseGraph::from(vec![
             Relation {
-                from: &"a",
-                to: &"b",
+                from: "a",
+                to: "b",
             },
             Relation {
-                from: &"b",
-                to: &"c",
+                from: "b",
+                to: "c",
             },
             Relation {
-                from: &"b",
-                to: &"d",
+                from: "b",
+                to: "d",
             },
         ]);
 

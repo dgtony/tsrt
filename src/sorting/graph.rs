@@ -308,44 +308,44 @@ mod tests {
     #[test]
     fn bfs() {
         let mut g = simple_dag();
-        g.add_edge(&a, &"e");
+        g.add_edge(a, "e");
 
-        let result = g.bfs(&a).unwrap();
-        assert_eq!(result[0], &a);
-        assert!((result[1] == &b && result[2] == &"e") || (result[2] == &b && result[1] == &"e"));
-        assert!((result[3] == &c && result[4] == &d) || (result[4] == &c && result[3] == &d));
+        let result = g.bfs(a).unwrap();
+        assert_eq!(result[0], a);
+        assert!((result[1] == b && result[2] == "e") || (result[2] == b && result[1] == "e"));
+        assert!((result[3] == c && result[4] == d) || (result[4] == c && result[3] == d));
     }
 
     #[test]
     fn dfs() {
         let mut g = simple_dag();
-        g.add_edge(&a, &"e");
+        g.add_edge(a, "e");
 
-        let result = g.dfs(&a).unwrap();
+        let result = g.dfs(a).unwrap();
 
-        assert_eq!(result[0], &a);
-        assert!(result[1] == &b || result[1] == &"e");
-        assert!(result[2] == &c || result[2] == &d || result[2] == &b);
-        assert!(result[3] == &c || result[3] == &d);
-        assert!(result[4] == &"e" || result[4] == &c || result[4] == &d);
+        assert_eq!(result[0], a);
+        assert!(result[1] == b || result[1] == "e");
+        assert!(result[2] == c || result[2] == d || result[2] == b);
+        assert!(result[3] == c || result[3] == d);
+        assert!(result[4] == "e" || result[4] == c || result[4] == d);
     }
 
     #[test]
     fn search_cycle() {
         let mut g = simple_dag();
-        g.add_edge(&d, &a);
+        g.add_edge(d, a);
 
-        assert!(g.contains_cycles(&a));
-        assert_eq!(g.bfs(&a), Err(TSortErr::Cycle));
-        assert_eq!(g.dfs(&a), Err(TSortErr::Cycle));
+        assert!(g.contains_cycles(a));
+        assert_eq!(g.bfs(a), Err(TSortErr::Cycle));
+        assert_eq!(g.dfs(a), Err(TSortErr::Cycle));
     }
 
     #[test]
     fn cycles() {
         let mut g = simple_dag();
-        g.add_edge(&d, &a);
+        g.add_edge(d, a);
 
-        assert!(g.contains_cycles(&a));
+        assert!(g.contains_cycles(a));
     }
 
     #[test]
@@ -365,9 +365,9 @@ mod tests {
     ///
     fn simple_dag() -> SparseGraph<&'static str> {
         let mut g = SparseGraph::new();
-        g.add_edge(&a, &b);
-        g.add_edge(&b, &c);
-        g.add_edge(&b, &d);
+        g.add_edge(a, b);
+        g.add_edge(b, c);
+        g.add_edge(b, d);
         g
     }
 }
