@@ -17,36 +17,24 @@ pub enum TSortErr {
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
-pub struct Relation<'a, T>
+pub struct Relation<T>
 where
-    T: Hash + Eq + ?Sized,
+    T: Hash + Eq + Clone,
 {
-    pub from: &'a T,
-    pub to: &'a T,
+    pub from: T,
+    pub to: T,
 }
 
-// fixme owning relation is better?
-//#[derive(Debug, Hash, Eq, PartialEq, Clone)]
-//pub struct Relation<T>
-//where
-//    T: Hash + Eq,
-//{
-//    pub from: T,
-//    pub to: T,
-//}
-
 pub trait TopoSorter {
-    fn sort<'a, 'b: 'a, T: Hash + Eq>(
-        graph: &'b SparseGraph<'a, T>,
-    ) -> Result<Vec<&'a T>, TSortErr>;
+    fn sort<T: Hash + Eq + Clone>(graph: &SparseGraph<T>) -> Result<Vec<&T>, TSortErr>;
 }
 
 pub fn mk_sort<'a, T, S: TopoSorter>(
-    graph: &'a SparseGraph<'a, T>,
+    graph: &'a SparseGraph<T>,
     _sorter: &S,
 ) -> Result<Vec<&'a T>, TSortErr>
 where
-    T: Hash + Eq,
+    T: Hash + Eq + Clone,
 {
     S::sort(graph)
 }
@@ -55,29 +43,26 @@ where
 mod tests {
     use super::*;
     use std::collections::HashSet;
+    use std::iter::FromIterator;
 
     #[test]
     fn graph_relations() {
-        let rels: HashSet<Relation<&str>> = HashSet::from_iter(vec![
+        let rels: HashSet<Relation<String>> = HashSet::from_iter(vec![
             Relation {
-                from: &"a",
-                to: &"b",
+                from: "a".to_string(),
+                to: "b".to_string(),
             },
             Relation {
-                from: &"b",
-                to: &"c",
+                from: "b".to_string(),
+                to: "c".to_string(),
             },
             Relation {
-                from: &"b",
-                to: &"d",
+                from: "b".to_string(),
+                to: "d".to_string(),
             },
         ]);
 
-        let rs = HashSet::from_iter(rels);
-        let rs2 = rs.clone();
-
-        // relation set -> graph -> relation set
-        let relation_set: HashSet<Relation<&str>> = SparseGraph::from_iter(rs).into();
+        let relation_set: HashSet<Relation<String>> = SparseGraph::from_iter(rels.into()).into();
 
         // expecting to be isomorphic
         assert_eq!(relation_set, rs2);
