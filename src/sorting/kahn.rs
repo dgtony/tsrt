@@ -1,6 +1,6 @@
 use crate::sorting::{SparseGraph, TSortErr, TopoSorter};
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 use std::hash::Hash;
 use std::iter::FromIterator;
 

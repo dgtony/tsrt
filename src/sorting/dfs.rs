@@ -1,9 +1,7 @@
-use crate::sorting::{Relation, SparseGraph, TSortErr, TopoSorter};
+use crate::sorting::{SparseGraph, TSortErr, TopoSorter};
 
-use std::collections::hash_set::Iter;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::hash::Hash;
-use std::iter::FromIterator;
 
 pub struct DFSSorter;
 

@@ -1,5 +1,4 @@
 use std::hash::Hash;
-use std::iter::FromIterator;
 
 mod dfs;
 mod graph;
@@ -62,27 +61,19 @@ mod tests {
             },
         ]);
 
-        let relation_set: HashSet<Relation<String>> = SparseGraph::from_iter(rels.clone().into_iter()).into();
+        let relation_set: HashSet<Relation<String>> =
+            SparseGraph::from_iter(rels.clone().into_iter()).into();
 
-        // expecting to be isomorphic
+        // expected to be isomorphic
         assert_eq!(relation_set, rels);
     }
 
     #[test]
     fn generic_sort() {
         let g = SparseGraph::from(vec![
-            Relation {
-                from: "a",
-                to: "b",
-            },
-            Relation {
-                from: "b",
-                to: "c",
-            },
-            Relation {
-                from: "b",
-                to: "d",
-            },
+            Relation { from: "a", to: "b" },
+            Relation { from: "b", to: "c" },
+            Relation { from: "b", to: "d" },
         ]);
 
         let sorted_variants = vec![vec![&"a", &"b", &"c", &"d"], vec![&"a", &"b", &"d", &"c"]];
