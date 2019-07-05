@@ -6,15 +6,15 @@ use std::iter::FromIterator;
 
 /// Sparse graph representation (|E| << \V\^2)
 #[derive(Debug)]
-pub struct SparseGraph<'a, T: Hash + Eq> {
-    sources: HashMap<&'a T, HashSet<&'a T>>, // src_v -> [dst_v]
-    destinations: HashMap<&'a T, HashSet<&'a T>>, // dst_v -> [src_v]
+pub struct SparseGraph<T: Hash + Eq> {
+    sources: HashMap<T, HashSet<T>>,      // src_v -> [dst_v]
+    destinations: HashMap<T, HashSet<T>>, // dst_v -> [src_v]
     num_edges: usize,
 }
 
-impl<'a, T> SparseGraph<'a, T>
+impl<T> SparseGraph<T>
 where
-    T: Hash + Eq,
+    T: Hash + Eq + Clone,
 {
     pub fn new() -> Self {
         SparseGraph {
@@ -28,8 +28,8 @@ where
     // Returns true if inserted edge was new.
     //
     // Note that function add_vertex() doesn't make sense in a given representation
-    pub fn add_edge(&mut self, from: &'a T, to: &'a T) -> bool {
-        let src_inserted = SparseGraph::insert(&mut self.sources, from, to);
+    pub fn add_edge(&mut self, from: T, to: T) -> bool {
+        let src_inserted = SparseGraph::insert(&mut self.sources, from.clone(), to.clone());
         let dst_inserted = SparseGraph::insert(&mut self.destinations, to, from);
         let new_edge = src_inserted || dst_inserted;
         if new_edge {
@@ -39,38 +39,38 @@ where
         new_edge
     }
 
-    pub fn remove_vertex(&mut self, vertex: &T) -> bool {
+    pub fn remove_vertex(&mut self, vertex: T) -> bool {
         // remove from destination set
-        if let Some(incoming_vertices) = self.destinations.get(vertex) {
+        if let Some(incoming_vertices) = self.destinations.get(&vertex) {
             for x in incoming_vertices.iter() {
-                if let Some(edges) = self.sources.remove(*x) {
+                if let Some(edges) = self.sources.remove(x) {
                     self.num_edges -= edges.len();
                 }
             }
         }
 
         // remove from source set
-        if let Some(outgoing_vertices) = self.sources.get(vertex) {
+        if let Some(outgoing_vertices) = self.sources.get(&vertex) {
             for x in outgoing_vertices.iter() {
-                if let Some(edges) = self.destinations.remove(*x) {
+                if let Some(edges) = self.destinations.remove(x) {
                     self.num_edges -= edges.len();
                 }
             }
         }
 
-        let src_removed = self.sources.remove(vertex).is_some();
-        let dst_removed = self.destinations.remove(vertex).is_some();
+        let src_removed = self.sources.remove(&vertex).is_some();
+        let dst_removed = self.destinations.remove(&vertex).is_some();
         src_removed || dst_removed
     }
 
-    pub fn remove_edge(&mut self, from: &T, to: &T) -> bool {
-        let src_removed = match self.sources.get_mut(from) {
-            Some(dsts) => dsts.remove(to),
+    pub fn remove_edge(&mut self, from: T, to: T) -> bool {
+        let src_removed = match self.sources.get_mut(&from) {
+            Some(dsts) => dsts.remove(&to),
             None => false,
         };
 
-        let dst_removed = match self.destinations.get_mut(to) {
-            Some(srcs) => srcs.remove(from),
+        let dst_removed = match self.destinations.get_mut(&to) {
+            Some(srcs) => srcs.remove(&from),
             None => false,
         };
 
@@ -86,26 +86,26 @@ where
         self.sources.is_empty() && self.destinations.is_empty()
     }
 
-    pub fn incoming(&self, vertex: &T) -> Option<&HashSet<&T>> {
+    pub fn incoming(&self, vertex: &T) -> Option<&HashSet<T>> {
         self.destinations
             .get(vertex)
             .map(|s| if s.is_empty() { None } else { Some(s) })
             .unwrap_or_default()
     }
 
-    pub fn outgoing(&self, vertex: &T) -> Option<&HashSet<&T>> {
+    pub fn outgoing(&self, vertex: &T) -> Option<&HashSet<T>> {
         self.sources
             .get(vertex)
             .map(|s| if s.is_empty() { None } else { Some(s) })
             .unwrap_or_default()
     }
 
-    pub fn contains_cycles(&self, start: &T) -> bool {
+    pub fn contains_cycles(&self, start: T) -> bool {
         self.dfs(start) == Err(TSortErr::Cycle)
     }
 
     /// Depth-first graph traversal starting from given vertex.
-    pub fn dfs(&'a self, start: &'a T) -> Result<Vec<&'a T>, TSortErr> {
+    pub fn dfs(&self, start: T) -> Result<Vec<T>, TSortErr> {
         let mut result = Vec::new();
         let mut queue = VecDeque::new();
         let mut iterations = 0;
@@ -116,12 +116,12 @@ where
                 return Err(TSortErr::Cycle);
             }
 
-            result.push(next);
+            result.push(next.clone());
             iterations += 1;
 
-            if let Some(children) = self.outgoing(next) {
-                for &child in children.iter() {
-                    queue.push_front(child);
+            if let Some(children) = self.outgoing(&next) {
+                for child in children.iter() {
+                    queue.push_front(child.clone());
                 }
             }
         }
@@ -130,7 +130,7 @@ where
     }
 
     /// Breadth-first graph traversal starting from given vertex.
-    pub fn bfs(&'a self, start: &'a T) -> Result<Vec<&'a T>, TSortErr> {
+    pub fn bfs(&self, start: T) -> Result<Vec<T>, TSortErr> {
         let mut result = Vec::new();
         let mut queue = VecDeque::new();
         let mut iterations = 0;
@@ -141,12 +141,12 @@ where
                 return Err(TSortErr::Cycle);
             }
 
-            result.push(next);
+            result.push(next.clone());
             iterations += 1;
 
-            if let Some(children) = self.outgoing(next) {
-                for &child in children.iter() {
-                    queue.push_back(child);
+            if let Some(children) = self.outgoing(&next) {
+                for child in children.iter() {
+                    queue.push_back(child.clone());
                 }
             }
         }
@@ -158,7 +158,7 @@ where
     pub fn vertices(&self) -> HashSet<&T> {
         self.sources.iter().chain(&self.destinations).fold(
             HashSet::new(),
-            |mut acc, (&src, dsts)| {
+            |mut acc, (src, dsts)| {
                 acc.insert(src);
                 acc.extend(dsts.iter());
                 acc
@@ -167,7 +167,7 @@ where
     }
 
     // internal helper
-    fn insert<'t: 'a>(map: &mut HashMap<&'a T, HashSet<&'a T>>, a: &'t T, b: &'t T) -> bool {
+    fn insert(map: &mut HashMap<T, HashSet<T>>, a: T, b: T) -> bool {
         match map.get_mut(&a) {
             Some(sources) => sources.insert(b),
             None => {
@@ -181,35 +181,42 @@ where
 
 /* Common traits */
 
-impl<'a, T> From<Vec<Relation<'a, T>>> for SparseGraph<'a, T>
+impl<T> From<Vec<Relation<T>>> for SparseGraph<T>
 where
-    T: 'a + Eq + Hash,
+    T: Eq + Hash + Clone,
 {
-    fn from(v: Vec<Relation<'a, T>>) -> SparseGraph<'a, T> {
+    fn from(v: Vec<Relation<T>>) -> SparseGraph<T> {
         let mut g = SparseGraph::new();
-        v.iter().for_each(|rel| {
+
+        v.into_iter().for_each(|rel| {
             g.add_edge(rel.from, rel.to);
         });
         g
     }
 }
 
-impl<'a, T> Into<HashSet<Relation<'a, T>>> for SparseGraph<'a, T>
+impl<T> Into<HashSet<Relation<T>>> for SparseGraph<T>
 where
-    T: 'a + Eq + Hash,
+    T: Eq + Hash + Clone,
 {
-    fn into(self) -> HashSet<Relation<'a, T>> {
+    fn into(self) -> HashSet<Relation<T>> {
         let mut relations = HashSet::new();
 
-        self.destinations.iter().for_each(|(&v, srcs)| {
-            srcs.iter().for_each(|&s| {
-                relations.insert(Relation { from: s, to: v });
+        self.destinations.iter().for_each(|(v, srcs)| {
+            srcs.iter().for_each(|s| {
+                relations.insert(Relation {
+                    from: s.clone(),
+                    to: v.clone(),
+                });
             })
         });
 
-        self.sources.iter().for_each(|(&v, dsts)| {
-            dsts.iter().for_each(|&d| {
-                relations.insert(Relation { from: v, to: d });
+        self.sources.iter().for_each(|(v, dsts)| {
+            dsts.iter().for_each(|d| {
+                relations.insert(Relation {
+                    from: v.clone(),
+                    to: d.clone(),
+                });
             })
         });
 
@@ -217,11 +224,11 @@ where
     }
 }
 
-impl<'a, T> FromIterator<Relation<'a, T>> for SparseGraph<'a, T>
+impl<T> FromIterator<Relation<T>> for SparseGraph<T>
 where
-    T: 'a + Eq + Hash,
+    T: Eq + Hash + Clone,
 {
-    fn from_iter<I: IntoIterator<Item = Relation<'a, T>>>(iter: I) -> Self {
+    fn from_iter<I: IntoIterator<Item = Relation<T>>>(iter: I) -> Self {
         let mut g = SparseGraph::new();
         iter.into_iter().for_each(|rel| {
             g.add_edge(rel.from, rel.to);
@@ -301,44 +308,44 @@ mod tests {
     #[test]
     fn bfs() {
         let mut g = simple_dag();
-        g.add_edge(&a, &"e");
+        g.add_edge(a, "e");
 
-        let result = g.bfs(&a).unwrap();
-        assert_eq!(result[0], &a);
-        assert!((result[1] == &b && result[2] == &"e") || (result[2] == &b && result[1] == &"e"));
-        assert!((result[3] == &c && result[4] == &d) || (result[4] == &c && result[3] == &d));
+        let result = g.bfs(a).unwrap();
+        assert_eq!(result[0], a);
+        assert!((result[1] == b && result[2] == "e") || (result[2] == b && result[1] == "e"));
+        assert!((result[3] == c && result[4] == d) || (result[4] == c && result[3] == d));
     }
 
     #[test]
     fn dfs() {
         let mut g = simple_dag();
-        g.add_edge(&a, &"e");
+        g.add_edge(a, "e");
 
-        let result = g.dfs(&a).unwrap();
+        let result = g.dfs(a).unwrap();
 
-        assert_eq!(result[0], &a);
-        assert!(result[1] == &b || result[1] == &"e");
-        assert!(result[2] == &c || result[2] == &d || result[2] == &b);
-        assert!(result[3] == &c || result[3] == &d);
-        assert!(result[4] == &"e" || result[4] == &c || result[4] == &d);
+        assert_eq!(result[0], a);
+        assert!(result[1] == b || result[1] == "e");
+        assert!(result[2] == c || result[2] == d || result[2] == b);
+        assert!(result[3] == c || result[3] == d);
+        assert!(result[4] == "e" || result[4] == c || result[4] == d);
     }
 
     #[test]
     fn search_cycle() {
         let mut g = simple_dag();
-        g.add_edge(&d, &a);
+        g.add_edge(d, a);
 
-        assert!(g.contains_cycles(&a));
-        assert_eq!(g.bfs(&a), Err(TSortErr::Cycle));
-        assert_eq!(g.dfs(&a), Err(TSortErr::Cycle));
+        assert!(g.contains_cycles(a));
+        assert_eq!(g.bfs(a), Err(TSortErr::Cycle));
+        assert_eq!(g.dfs(a), Err(TSortErr::Cycle));
     }
 
     #[test]
     fn cycles() {
         let mut g = simple_dag();
-        g.add_edge(&d, &a);
+        g.add_edge(d, a);
 
-        assert!(g.contains_cycles(&a));
+        assert!(g.contains_cycles(a));
     }
 
     #[test]
@@ -356,11 +363,11 @@ mod tests {
     ///   / \
     ///  c   d
     ///
-    fn simple_dag() -> SparseGraph<'static, &'static str> {
+    fn simple_dag() -> SparseGraph<&'static str> {
         let mut g = SparseGraph::new();
-        g.add_edge(&a, &b);
-        g.add_edge(&b, &c);
-        g.add_edge(&b, &d);
+        g.add_edge(a, b);
+        g.add_edge(b, c);
+        g.add_edge(b, d);
         g
     }
 }

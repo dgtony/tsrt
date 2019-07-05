@@ -1,26 +1,26 @@
 use crate::sorting::{SparseGraph, TSortErr, TopoSorter};
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 use std::hash::Hash;
 use std::iter::FromIterator;
 
 pub struct KahnSorter;
 
 impl TopoSorter for KahnSorter {
-    fn sort<'a, 'b: 'a, T>(graph: &'b SparseGraph<'a, T>) -> Result<Vec<&'a T>, TSortErr>
+    fn sort<T>(graph: &SparseGraph<T>) -> Result<Vec<&T>, TSortErr>
     where
-        T: Hash + Eq,
+        T: Hash + Eq + Clone,
     {
         sort(graph)
     }
 }
 
 /// Topological sorting using Kahn's algorithm
-fn sort<'a, T>(graph: &'a SparseGraph<'a, T>) -> Result<Vec<&'a T>, TSortErr>
+fn sort<T>(graph: &SparseGraph<T>) -> Result<Vec<&T>, TSortErr>
 where
-    T: Hash + Eq,
+    T: Hash + Eq + Clone,
 {
-    let mut tsorted: Vec<&'a T> = Vec::new();
+    let mut tsorted: Vec<&T> = Vec::new();
     let mut iteration: usize = 0;
     let vertices = graph.vertices();
     // incoming degrees of all vertices in the graph
@@ -43,11 +43,11 @@ where
         // remove edges from vertex to its descendants and
         // add nodes without incoming edges to the queue
         graph.outgoing(vertex).map(|neighbours| {
-            neighbours.iter().for_each(|&v| {
-                if let Some(d) = in_degrees.get_mut(v) {
+            neighbours.iter().for_each(|v| {
+                if let Some(d) = in_degrees.get_mut(&v) {
                     *d -= 1;
                     if *d == 0 {
-                        queue.push_back(v);
+                        queue.push_back(&v);
                     }
                 }
             })
@@ -75,13 +75,13 @@ mod tests {
     ///     / \
     ///    e   f
     ///
-    fn simple_dag() -> SparseGraph<'static, &'static str> {
+    fn simple_dag() -> SparseGraph<&'static str> {
         let mut g = SparseGraph::new();
-        g.add_edge(&"a", &"b");
-        g.add_edge(&"b", &"c");
-        g.add_edge(&"b", &"d");
-        g.add_edge(&"d", &"e");
-        g.add_edge(&"d", &"f");
+        g.add_edge("a", "b");
+        g.add_edge("b", "c");
+        g.add_edge("b", "d");
+        g.add_edge("d", "e");
+        g.add_edge("d", "f");
         g
     }
 

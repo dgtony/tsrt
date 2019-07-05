@@ -1,16 +1,14 @@
-use crate::sorting::{Relation, SparseGraph, TSortErr, TopoSorter};
+use crate::sorting::{SparseGraph, TSortErr, TopoSorter};
 
-use std::collections::hash_set::Iter;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::hash::Hash;
-use std::iter::FromIterator;
 
 pub struct DFSSorter;
 
 impl TopoSorter for DFSSorter {
-    fn sort<'a, 'b: 'a, T>(graph: &'b SparseGraph<'a, T>) -> Result<Vec<&'a T>, TSortErr>
+    fn sort<T>(graph: &SparseGraph<T>) -> Result<Vec<&T>, TSortErr>
     where
-        T: Hash + Eq,
+        T: Hash + Eq + Clone,
     {
         sort(graph)
     }
@@ -21,12 +19,12 @@ impl TopoSorter for DFSSorter {
 /// Time complexity: O(|V|+|E|).
 ///
 /// Caution: not recommended for large graphs!
-fn sort<'a, T>(graph: &'a SparseGraph<'a, T>) -> Result<Vec<&'a T>, TSortErr>
+fn sort<T>(graph: &SparseGraph<T>) -> Result<Vec<&T>, TSortErr>
 where
-    T: Hash + Eq,
+    T: Hash + Eq + Clone,
 {
-    let mut visited = HashMap::new();
-    let mut order = Vec::new();
+    let mut visited: HashMap<&T, bool> = HashMap::new();
+    let mut order: Vec<&T> = Vec::new();
 
     graph.vertices().iter().for_each(|n| {
         if !*visited.get(n).unwrap_or(&false) {
@@ -40,18 +38,18 @@ where
 
 fn recursive_dfs<'a, T>(
     vertex: &'a T,
-    graph: &'a SparseGraph<'a, T>,
+    graph: &'a SparseGraph<T>,
     visited: &mut HashMap<&'a T, bool>,
     order: &mut Vec<&'a T>,
 ) where
-    T: Hash + Eq,
+    T: Hash + Eq + Clone,
 {
     visited.insert(vertex, true);
 
     if let Some(neighbours) = graph.outgoing(vertex) {
         neighbours.iter().for_each(|n| {
             if !*visited.get(n).unwrap_or(&false) {
-                recursive_dfs(*n, graph, visited, order);
+                recursive_dfs(n, graph, visited, order);
             }
         });
     }
@@ -81,11 +79,11 @@ mod tests {
     ///   / \
     ///  c   d
     ///
-    fn simple_dag() -> SparseGraph<'static, &'static str> {
+    fn simple_dag() -> SparseGraph<&'static str> {
         let mut g = SparseGraph::new();
-        g.add_edge(&"a", &"b");
-        g.add_edge(&"b", &"c");
-        g.add_edge(&"b", &"d");
+        g.add_edge("a", "b");
+        g.add_edge("b", "c");
+        g.add_edge("b", "d");
         g
     }
 }
